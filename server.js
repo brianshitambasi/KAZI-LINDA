@@ -68,3 +68,7 @@ server.listen(PORT, () => console.log(`íº€ Server running on port ${PORT}`));
 // Message routes
 const messageRoutes = require('./routes/messageRoutes');
 app.use('/api/messages', messageRoutes);
+
+// Add after other route imports
+const profileRoutes = require('./routes/profileRoutes');
+app.use('/api/profile', profileRoutes);
