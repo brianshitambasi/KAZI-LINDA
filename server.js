@@ -64,3 +64,7 @@ app.get('/', (req, res) => res.send('KAZI LINDA API is running'));
 
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => console.log(`íº€ Server running on port ${PORT}`));
+
+// Message routes
+const messageRoutes = require('./routes/messageRoutes');
+app.use('/api/messages', messageRoutes);

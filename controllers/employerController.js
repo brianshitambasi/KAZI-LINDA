@@ -1,5 +1,7 @@
 const Employer = require('../models/Employer');
 const Blacklist = require('../models/Blacklist');
+const Job = require('../models/Job');
+const Application = require('../models/Application');
 
 const verifyEmployer = async (req, res) => {
   try {
@@ -53,7 +55,6 @@ const rateEmployer = async (req, res) => {
       return res.status(404).json({ message: 'Employer not found' });
     }
     
-    // Add review
     employer.reviews.push({
       userId: req.user.id,
       rating,
@@ -61,7 +62,6 @@ const rateEmployer = async (req, res) => {
       date: new Date()
     });
     
-    // Calculate new average rating
     const total = employer.reviews.reduce((sum, r) => sum + r.rating, 0);
     employer.rating = total / employer.reviews.length;
     employer.totalRatings = employer.reviews.length;
@@ -139,34 +139,20 @@ const createEmployerProfile = async (req, res) => {
   }
 };
 
-module.exports = {
-  verifyEmployer,
-  getEmployer,
-  rateEmployer,
-  reportEmployer,
-  getBlacklist,
-  createEmployerProfile
-};
-
 // Get employer detailed stats (for verification)
 const getEmployerStats = async (req, res) => {
   try {
     const employerId = req.params.id;
     
-    // Get employer details
     const employer = await Employer.findById(employerId);
     if (!employer) {
       return res.status(404).json({ message: 'Employer not found' });
     }
     
-    // Get all jobs posted by this employer
     const jobs = await Job.find({ employerId: employerId });
-    
-    // Get all applications for those jobs
     const jobIds = jobs.map(job => job._id);
     const applications = await Application.find({ jobId: { $in: jobIds } }).populate('workerId', 'name email phone');
     
-    // Calculate statistics
     const stats = {
       totalJobsPosted: jobs.length,
       totalApplications: applications.length,
@@ -183,7 +169,6 @@ const getEmployerStats = async (req, res) => {
       memberSince: employer.createdAt
     };
     
-    // Get recent hires (last 5 accepted applications)
     const recentHires = applications
       .filter(a => a.status === 'accepted')
       .slice(0, 5)

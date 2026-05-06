@@ -6,13 +6,15 @@ const {
   rateEmployer, 
   reportEmployer, 
   getBlacklist,
-  createEmployerProfile
+  createEmployerProfile,
+  getEmployerStats
 } = require('../controllers/employerController');
 const { protect, employerOnly } = require('../middleware/auth');
 
 router.post('/verify', verifyEmployer);
 router.get('/blacklist/all', getBlacklist);
 router.get('/:id', getEmployer);
+router.get('/:id/stats', getEmployerStats);
 router.post('/:id/rate', protect, rateEmployer);
 router.post('/:id/report', protect, reportEmployer);
 router.post('/create-profile', protect, employerOnly, createEmployerProfile);
@@ -25,6 +27,3 @@ router.get('/check', protect, async (req, res) => {
 });
 
 module.exports = router;
-
-// Get employer statistics and history
-router.get('/:id/stats', getEmployerStats);
