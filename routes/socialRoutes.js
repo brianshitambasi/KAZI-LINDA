@@ -8,14 +8,18 @@ const {
   addComment,
   followUser,
   unfollowUser,
+  getFriends,
   getSuggestions,
+  getUnreadNotificationCount,
   getNotifications,
   markNotificationsRead
 } = require('../controllers/socialController');
 
 router.get('/feed', protect, getFeed);
+router.get('/friends', protect, getFriends);
 router.get('/suggestions', protect, getSuggestions);
 router.get('/notifications', protect, getNotifications);
+router.get('/notifications/unread', protect, getUnreadNotificationCount);
 router.put('/notifications/read', protect, markNotificationsRead);
 router.post('/posts', protect, createPost);
 router.post('/posts/:postId/like', protect, toggleLike);

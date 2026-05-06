@@ -6,10 +6,7 @@ const User = require('../models/User');
 // Get feed posts
 const getFeed = async (req, res) => {
   try {
-    // Get users the current user follows
     const following = await Connection.find({ follower: req.user.id }).distinct('following');
-    
-    // Get posts from followed users and public posts
     const posts = await Post.find({
       $or: [
         { author: { $in: [...following, req.user.id] } },
@@ -57,16 +54,6 @@ const toggleLike = async (req, res) => {
     const likeIndex = post.likes.indexOf(req.user.id);
     if (likeIndex === -1) {
       post.likes.push(req.user.id);
-      // Create notification
-      if (post.author.toString() !== req.user.id) {
-        await Notification.create({
-          user: post.author,
-          type: 'like',
-          from: req.user.id,
-          postId: post._id,
-          message: 'liked your post'
-        });
-      }
     } else {
       post.likes.splice(likeIndex, 1);
     }
@@ -122,14 +109,6 @@ const followUser = async (req, res) => {
       following: followingId
     });
     
-    // Create notification
-    await Notification.create({
-      user: followingId,
-      type: 'follow',
-      from: req.user.id,
-      message: 'started following you'
-    });
-    
     res.json({ message: 'Now following' });
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -149,6 +128,18 @@ const unfollowUser = async (req, res) => {
   }
 };
 
+// Get friends list (users you follow)
+const getFriends = async (req, res) => {
+  try {
+    const following = await Connection.find({ follower: req.user.id }).distinct('following');
+    const friends = await User.find({ _id: { $in: following } })
+      .select('name profilePicture role currentCountry currentStatus');
+    res.json(friends);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
 // Get suggested users
 const getSuggestions = async (req, res) => {
   try {
@@ -158,10 +149,20 @@ const getSuggestions = async (req, res) => {
       _id: { $nin: [...following, req.user.id] },
       role: { $ne: 'admin' }
     })
-    .select('name profilePicture role currentStatus')
+    .select('name profilePicture role currentCountry currentStatus')
     .limit(10);
     
     res.json(suggestions);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// Get unread notification count
+const getUnreadNotificationCount = async (req, res) => {
+  try {
+    const count = await Notification.countDocuments({ user: req.user.id, read: false });
+    res.json({ count });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -202,7 +203,9 @@ module.exports = {
   addComment,
   followUser,
   unfollowUser,
+  getFriends,
   getSuggestions,
+  getUnreadNotificationCount,
   getNotifications,
   markNotificationsRead
 };

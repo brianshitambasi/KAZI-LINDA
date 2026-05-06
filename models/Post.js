@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 const postSchema = new mongoose.Schema({
   author: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   content: { type: String, required: true },
-  media: [{ type: String }], // Cloudinary URLs for images/videos
+  media: [{ type: String }],
   likes: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
   comments: [{
     user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
