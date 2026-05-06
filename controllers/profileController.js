@@ -1,6 +1,6 @@
 const User = require('../models/User');
 
-// Get user profile
+// Get user profile (own profile)
 const getProfile = async (req, res) => {
   try {
     const user = await User.findById(req.user.id)
@@ -13,11 +13,12 @@ const getProfile = async (req, res) => {
     
     res.json(user);
   } catch (err) {
+    console.error('Get profile error:', err);
     res.status(500).json({ message: err.message });
   }
 };
 
-// Get public profile by ID
+// Get public profile by ID - For viewing other users' profiles
 const getPublicProfile = async (req, res) => {
   try {
     const { userId } = req.params;
@@ -29,8 +30,27 @@ const getPublicProfile = async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
     
-    res.json(user);
+    // Return all profile data including skills, languages, education, certifications
+    res.json({
+      _id: user._id,
+      name: user.name,
+      profilePicture: user.profilePicture,
+      role: user.role,
+      bio: user.bio,
+      countryOfOrigin: user.countryOfOrigin,
+      currentCountry: user.currentCountry,
+      currentCity: user.currentCity,
+      currentStatus: user.currentStatus,
+      skills: user.skills || [],
+      languages: user.languages || [],
+      education: user.education || [],
+      certifications: user.certifications || [],
+      rating: user.rating || 0,
+      totalRatings: user.totalRatings || 0,
+      createdAt: user.createdAt
+    });
   } catch (err) {
+    console.error('Get public profile error:', err);
     res.status(500).json({ message: err.message });
   }
 };
