@@ -25,3 +25,6 @@ router.get('/check', protect, async (req, res) => {
 });
 
 module.exports = router;
+
+// Get employer statistics and history
+router.get('/:id/stats', getEmployerStats);

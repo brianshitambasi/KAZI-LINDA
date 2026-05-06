@@ -147,3 +147,86 @@ module.exports = {
   getBlacklist,
   createEmployerProfile
 };
+
+// Get employer detailed stats (for verification)
+const getEmployerStats = async (req, res) => {
+  try {
+    const employerId = req.params.id;
+    
+    // Get employer details
+    const employer = await Employer.findById(employerId);
+    if (!employer) {
+      return res.status(404).json({ message: 'Employer not found' });
+    }
+    
+    // Get all jobs posted by this employer
+    const jobs = await Job.find({ employerId: employerId });
+    
+    // Get all applications for those jobs
+    const jobIds = jobs.map(job => job._id);
+    const applications = await Application.find({ jobId: { $in: jobIds } }).populate('workerId', 'name email phone');
+    
+    // Calculate statistics
+    const stats = {
+      totalJobsPosted: jobs.length,
+      totalApplications: applications.length,
+      hiredCount: applications.filter(a => a.status === 'accepted').length,
+      rejectedCount: applications.filter(a => a.status === 'rejected').length,
+      pendingCount: applications.filter(a => a.status === 'pending').length,
+      successRate: applications.length > 0 
+        ? ((applications.filter(a => a.status === 'accepted').length / applications.length) * 100).toFixed(1) 
+        : 0,
+      averageRating: employer.rating || 0,
+      totalRatings: employer.totalRatings || 0,
+      complaintCount: employer.complaints?.length || 0,
+      verified: employer.verified || false,
+      memberSince: employer.createdAt
+    };
+    
+    // Get recent hires (last 5 accepted applications)
+    const recentHires = applications
+      .filter(a => a.status === 'accepted')
+      .slice(0, 5)
+      .map(a => ({
+        workerName: a.workerId?.name,
+        workerPhone: a.workerId?.phone,
+        jobTitle: jobs.find(j => j._id.toString() === a.jobId.toString())?.title,
+        hiredDate: a.updatedAt
+      }));
+    
+    res.json({
+      employer: {
+        name: employer.name,
+        companyName: employer.companyName,
+        country: employer.country,
+        phone: employer.phone,
+        email: employer.email,
+        verified: employer.verified,
+        rating: employer.rating,
+        totalRatings: employer.totalRatings,
+        memberSince: employer.createdAt
+      },
+      stats,
+      recentHires,
+      jobs: jobs.map(j => ({
+        title: j.title,
+        country: j.country,
+        salary: j.salary,
+        postedDate: j.createdAt,
+        applicationsCount: applications.filter(a => a.jobId.toString() === j._id.toString()).length
+      }))
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+module.exports = {
+  verifyEmployer,
+  getEmployer,
+  rateEmployer,
+  reportEmployer,
+  getBlacklist,
+  createEmployerProfile,
+  getEmployerStats
+};
