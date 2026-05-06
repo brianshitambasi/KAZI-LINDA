@@ -1,5 +1,4 @@
 const User = require('../models/User');
-const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
 // Generate JWT Token
@@ -20,16 +19,12 @@ const register = async (req, res) => {
       return res.status(400).json({ message: 'User already exists with this email or phone' });
     }
 
-    // Hash password
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
-
-    // Create user
+    // Create user - let the schema pre-save middleware handle password hashing
     const user = await User.create({
       name,
       email,
       phone,
-      password: hashedPassword,
+      password, // Don't hash here - the schema middleware will hash it
       role: role || 'worker',
       idNumber,
       county,
@@ -61,7 +56,7 @@ const login = async (req, res) => {
       return res.status(401).json({ message: 'Invalid email or password' });
     }
 
-    const isMatch = await bcrypt.compare(password, user.password);
+    const isMatch = await user.comparePassword(password);
     if (!isMatch) {
       return res.status(401).json({ message: 'Invalid email or password' });
     }
