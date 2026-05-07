@@ -39,3 +39,19 @@ const getFeed = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
+
+module.exports = {
+  getFeed,
+  createPost,
+  toggleLike,
+  addComment,
+  followUser,
+  unfollowUser,
+  getFriends,
+  getOnlineFriends,
+  getSuggestions,
+  updateOnlineStatus,
+  getUnreadNotificationCount,
+  getNotifications,
+  markNotificationsRead
+};
