@@ -223,6 +223,57 @@ const markNotificationsRead = async (req, res) => {
   }
 };
 
+// ============= NEW FOLLOWER/FOLLOWING ENDPOINTS =============
+
+// Get followers of a user
+const getFollowers = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    
+    const connections = await Connection.find({ following: userId })
+      .populate('follower', 'name profilePicture role currentStatus isOnline');
+    
+    const followers = connections.map(conn => conn.follower);
+    res.json(followers);
+  } catch (err) {
+    console.error('Get followers error:', err);
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// Get following of a user
+const getFollowing = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    
+    const connections = await Connection.find({ follower: userId })
+      .populate('following', 'name profilePicture role currentStatus isOnline');
+    
+    const following = connections.map(conn => conn.following);
+    res.json(following);
+  } catch (err) {
+    console.error('Get following error:', err);
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// Check if current user is following another user
+const checkFollowing = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    
+    const connection = await Connection.findOne({
+      follower: req.user.id,
+      following: userId
+    });
+    
+    res.json({ following: !!connection });
+  } catch (err) {
+    console.error('Check following error:', err);
+    res.status(500).json({ message: err.message });
+  }
+};
+
 module.exports = {
   getFeed,
   createPost,
@@ -236,5 +287,8 @@ module.exports = {
   updateOnlineStatus,
   getUnreadNotificationCount,
   getNotifications,
-  markNotificationsRead
+  markNotificationsRead,
+  getFollowers,
+  getFollowing,
+  checkFollowing
 };
