@@ -223,20 +223,14 @@ const markNotificationsRead = async (req, res) => {
   }
 };
 
-// ============= NEW FOLLOWER/FOLLOWING ENDPOINTS =============
-
 // Get followers of a user
 const getFollowers = async (req, res) => {
   try {
     const { userId } = req.params;
-    
     const connections = await Connection.find({ following: userId })
       .populate('follower', 'name profilePicture role currentStatus isOnline');
-    
-    const followers = connections.map(conn => conn.follower);
-    res.json(followers);
+    res.json(connections.map(c => c.follower));
   } catch (err) {
-    console.error('Get followers error:', err);
     res.status(500).json({ message: err.message });
   }
 };
@@ -245,64 +239,23 @@ const getFollowers = async (req, res) => {
 const getFollowing = async (req, res) => {
   try {
     const { userId } = req.params;
-    
     const connections = await Connection.find({ follower: userId })
       .populate('following', 'name profilePicture role currentStatus isOnline');
-    
-    const following = connections.map(conn => conn.following);
-    res.json(following);
+    res.json(connections.map(c => c.following));
   } catch (err) {
-    console.error('Get following error:', err);
     res.status(500).json({ message: err.message });
   }
 };
 
-// Check if current user is following another user
+// Check if following
 const checkFollowing = async (req, res) => {
   try {
     const { userId } = req.params;
-    
     const connection = await Connection.findOne({
       follower: req.user.id,
       following: userId
     });
-    
     res.json({ following: !!connection });
-  } catch (err) {
-    console.error('Check following error:', err);
-    res.status(500).json({ message: err.message });
-  }
-};
-
-module.exports = {
-  getUserPosts,
-  getFeed,
-  createPost,
-  toggleLike,
-  addComment,
-  followUser,
-  unfollowUser,
-  getFriends,
-  getOnlineFriends,
-  getSuggestions,
-  updateOnlineStatus,
-  getUnreadNotificationCount,
-  getNotifications,
-  markNotificationsRead,
-  getFollowers,
-  getFollowing,
-  checkFollowing
-};
-
-// Get user's own posts (for profile page)
-const getUserPosts = async (req, res) => {
-  try {
-    const { userId } = req.params;
-    const posts = await Post.find({ author: userId })
-      .populate('author', 'name profilePicture')
-      .sort({ createdAt: -1 })
-      .limit(50);
-    res.json(posts);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -321,4 +274,24 @@ const getUserPosts = async (req, res) => {
     console.error('Get user posts error:', err);
     res.status(500).json({ message: err.message });
   }
+};
+
+module.exports = {
+  getFeed,
+  createPost,
+  toggleLike,
+  addComment,
+  followUser,
+  unfollowUser,
+  getFriends,
+  getOnlineFriends,
+  getSuggestions,
+  updateOnlineStatus,
+  getUnreadNotificationCount,
+  getNotifications,
+  markNotificationsRead,
+  getFollowers,
+  getFollowing,
+  checkFollowing,
+  getUserPosts
 };
