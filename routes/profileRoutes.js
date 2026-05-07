@@ -10,6 +10,7 @@ const {
   addLanguage,
   deleteEducation,
   uploadProfilePicture,
+  updateCoverPhoto,
   updateLocation,
   getUserStats
 } = require('../controllers/profileController');
@@ -20,6 +21,7 @@ router.put('/me', protect, updateProfile);
 router.get('/stats', protect, getUserStats);
 router.post('/location', protect, updateLocation);
 router.post('/profile-picture', protect, uploadProfilePicture);
+router.post('/cover-photo', protect, updateCoverPhoto);
 
 // Education routes
 router.post('/education', protect, addEducation);
@@ -35,4 +37,3 @@ router.post('/language', protect, addLanguage);
 router.get('/:userId', protect, getPublicProfile);
 
 module.exports = router;
-router.post('/cover-photo', protect, updateCoverPhoto);
