@@ -17,7 +17,8 @@ const {
   markNotificationsRead,
   getFollowers,
   getFollowing,
-  checkFollowing
+  checkFollowing,
+  getUserPosts
 } = require('../controllers/socialController');
 
 // Feed routes
@@ -36,6 +37,9 @@ router.get('/friends', protect, getFriends);
 router.get('/online-friends', protect, getOnlineFriends);
 router.get('/suggestions', protect, getSuggestions);
 
+// User posts
+router.get('/user-posts/:userId', protect, getUserPosts);
+
 // Follower/Following lists
 router.get('/followers/:userId', protect, getFollowers);
 router.get('/following/:userId', protect, getFollowing);
@@ -49,4 +53,3 @@ router.put('/notifications/read', protect, markNotificationsRead);
 router.post('/online', protect, updateOnlineStatus);
 
 module.exports = router;
-router.get('/user-posts/:userId', protect, getUserPosts);

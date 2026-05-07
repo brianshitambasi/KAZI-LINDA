@@ -275,6 +275,7 @@ const checkFollowing = async (req, res) => {
 };
 
 module.exports = {
+  getUserPosts,
   getFeed,
   createPost,
   toggleLike,
@@ -303,6 +304,21 @@ const getUserPosts = async (req, res) => {
       .limit(50);
     res.json(posts);
   } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// Get user's own posts (for profile page)
+const getUserPosts = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const posts = await Post.find({ author: userId })
+      .populate('author', 'name profilePicture')
+      .sort({ createdAt: -1 })
+      .limit(50);
+    res.json(posts);
+  } catch (err) {
+    console.error('Get user posts error:', err);
     res.status(500).json({ message: err.message });
   }
 };
