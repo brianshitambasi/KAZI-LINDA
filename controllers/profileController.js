@@ -8,7 +8,6 @@ const getProfile = async (req, res) => {
     }
     
     const user = await User.findById(req.user.id).select('-password');
-    // Removed populate since reviews schema might not exist yet
     
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
@@ -66,7 +65,7 @@ const getPublicProfile = async (req, res) => {
   }
 };
 
-// Rest of the controller remains the same...
+// Update user profile
 const updateProfile = async (req, res) => {
   try {
     const allowedUpdates = [
@@ -101,6 +100,7 @@ const updateProfile = async (req, res) => {
   }
 };
 
+// Add education
 const addEducation = async (req, res) => {
   try {
     const { degree, institution, year, description } = req.body;
@@ -115,6 +115,7 @@ const addEducation = async (req, res) => {
   }
 };
 
+// Add certification
 const addCertification = async (req, res) => {
   try {
     const { name, issuer, date, expiryDate } = req.body;
@@ -129,6 +130,7 @@ const addCertification = async (req, res) => {
   }
 };
 
+// Add language
 const addLanguage = async (req, res) => {
   try {
     const { name, proficiency } = req.body;
@@ -143,6 +145,7 @@ const addLanguage = async (req, res) => {
   }
 };
 
+// Delete education
 const deleteEducation = async (req, res) => {
   try {
     const { eduId } = req.params;
@@ -157,6 +160,7 @@ const deleteEducation = async (req, res) => {
   }
 };
 
+// Upload profile picture
 const uploadProfilePicture = async (req, res) => {
   try {
     const { imageUrl } = req.body;
@@ -175,6 +179,33 @@ const uploadProfilePicture = async (req, res) => {
   }
 };
 
+// Update cover photo
+const updateCoverPhoto = async (req, res) => {
+  try {
+    const { coverUrl } = req.body;
+    
+    if (!coverUrl) {
+      return res.status(400).json({ message: 'Cover URL required' });
+    }
+    
+    const user = await User.findByIdAndUpdate(
+      req.user.id,
+      { coverPhoto: coverUrl },
+      { new: true }
+    ).select('-password');
+    
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    
+    res.json({ success: true, coverPhoto: user.coverPhoto });
+  } catch (err) {
+    console.error('Update cover photo error:', err);
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// Update location
 const updateLocation = async (req, res) => {
   try {
     const { country, city, lat, lng } = req.body;
@@ -194,6 +225,7 @@ const updateLocation = async (req, res) => {
   }
 };
 
+// Get user stats
 const getUserStats = async (req, res) => {
   try {
     const user = await User.findById(req.user.id);
@@ -216,85 +248,6 @@ const getUserStats = async (req, res) => {
       totalRatings: user.totalRatings
     });
   } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-};
-
-module.exports = {
-  getProfile,
-  getPublicProfile,
-  updateProfile,
-  addEducation,
-  addCertification,
-  addLanguage,
-  deleteEducation,
-  uploadProfilePicture,
-  updateLocation,
-  getUserStats
-};
-
-// Update cover photo
-const updateCoverPhoto = async (req, res) => {
-  try {
-    const { coverUrl } = req.body;
-    
-    if (!coverUrl) {
-      return res.status(400).json({ message: 'Cover URL required' });
-    }
-    
-    const user = await User.findByIdAndUpdate(
-      req.user.id,
-      { coverPhoto: coverUrl },
-      { new: true }
-    ).select('-password');
-    
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
-    
-    res.json({ success: true, coverPhoto: user.coverPhoto });
-  } catch (err) {
-    console.error('Update cover photo error:', err);
-    res.status(500).json({ message: err.message });
-  }
-};
-
-module.exports = {
-  getProfile,
-  getPublicProfile,
-  updateProfile,
-  addEducation,
-  addCertification,
-  addLanguage,
-  deleteEducation,
-  uploadProfilePicture,
-  updateCoverPhoto,
-  updateLocation,
-  getUserStats
-};
-
-// Update cover photo
-const updateCoverPhoto = async (req, res) => {
-  try {
-    const { coverUrl } = req.body;
-    
-    if (!coverUrl) {
-      return res.status(400).json({ message: 'Cover URL required' });
-    }
-    
-    const user = await User.findByIdAndUpdate(
-      req.user.id,
-      { coverPhoto: coverUrl },
-      { new: true }
-    ).select('-password');
-    
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
-    
-    res.json({ success: true, coverPhoto: user.coverPhoto });
-  } catch (err) {
-    console.error('Update cover photo error:', err);
     res.status(500).json({ message: err.message });
   }
 };
