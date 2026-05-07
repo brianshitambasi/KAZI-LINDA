@@ -1,28 +1,6 @@
 const Message = require('../models/Message');
 const Conversation = require('../models/Conversation');
 const User = require('../models/User');
-const nodemailer = require('nodemailer');
-
-const transporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-});
-
-const sendEmailNotification = async (to, subject, html) => {
-  try {
-    await transporter.sendMail({
-      from: `"KAZI LINDA" <${process.env.EMAIL_USER}>`,
-      to,
-      subject,
-      html,
-    });
-  } catch (error) {
-    console.error('Email error:', error);
-  }
-};
 
 // Send a message
 const sendMessage = async (req, res) => {
@@ -68,26 +46,6 @@ const sendMessage = async (req, res) => {
       await conversation.populate('participants', 'name email profilePicture role currentStatus');
     }
     
-    if (receiver.emailNotifications !== false) {
-      await sendEmailNotification(
-        receiver.email,
-        `New message from ${req.user.name} on KAZI LINDA`,
-        `
-          <div style="font-family: Arial, sans-serif; max-width: 600px;">
-            <h2 style="color: #f39c12;">New Message from ${req.user.name}</h2>
-            <div style="background: #f5f5f5; padding: 15px; border-radius: 5px;">
-              <p><strong>From:</strong> ${req.user.name} (${req.user.role})</p>
-              <p><strong>Subject:</strong> ${subject || 'No subject'}</p>
-              <p><strong>Message:</strong> ${message}</p>
-            </div>
-            <div style="text-align: center; margin-top: 20px;">
-              <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/messages" style="background: #f39c12; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Reply</a>
-            </div>
-          </div>
-        `
-      );
-    }
-    
     res.status(201).json({ success: true, message: newMessage, conversation });
   } catch (err) {
     console.error('Send message error:', err);
@@ -95,39 +53,47 @@ const sendMessage = async (req, res) => {
   }
 };
 
-// Get conversations with full user details
+// Get conversations for a user
 const getConversations = async (req, res) => {
   try {
+    console.log('Fetching conversations for user:', req.user.id);
+    
     const conversations = await Conversation.find({
       participants: req.user.id
     })
-    .populate('participants', 'name email profilePicture role currentStatus rating lastSeen countryOfOrigin currentCountry skills')
-    .populate('jobId', 'title company country')
+    .populate('participants', 'name email profilePicture role currentStatus isOnline')
+    .populate('jobId', 'title')
     .sort({ updatedAt: -1 });
     
+    console.log('Found conversations:', conversations.length);
+    
+    // Format conversations safely
     const formattedConversations = conversations.map(conv => {
-      const otherUser = conv.participants.find(p => p._id.toString() !== req.user.id);
+      // Find the other participant safely
+      const otherParticipant = conv.participants ? conv.participants.find(p => p && p._id && p._id.toString() !== req.user.id) : null;
+      
+      if (!otherParticipant) {
+        console.log('No other participant found for conversation:', conv._id);
+        return null;
+      }
+      
       return {
         _id: conv._id,
         otherUser: {
-          _id: otherUser._id,
-          name: otherUser.name,
-          email: otherUser.email,
-          profilePicture: otherUser.profilePicture,
-          role: otherUser.role,
-          currentStatus: otherUser.currentStatus,
-          rating: otherUser.rating,
-          lastSeen: otherUser.lastSeen,
-          countryOfOrigin: otherUser.countryOfOrigin,
-          currentCountry: otherUser.currentCountry,
-          skills: otherUser.skills || []
+          _id: otherParticipant._id,
+          name: otherParticipant.name || 'Unknown',
+          email: otherParticipant.email,
+          profilePicture: otherParticipant.profilePicture || '',
+          role: otherParticipant.role || 'User',
+          currentStatus: otherParticipant.currentStatus,
+          isOnline: otherParticipant.isOnline || false
         },
         job: conv.jobId,
-        lastMessage: conv.lastMessage,
+        lastMessage: conv.lastMessage || '',
         lastMessageAt: conv.lastMessageAt,
-        unreadCount: conv.unreadCount.get(req.user.id) || 0
+        unreadCount: conv.unreadCount?.get(req.user.id) || 0
       };
-    });
+    }).filter(conv => conv !== null);
     
     res.json(formattedConversations);
   } catch (err) {
@@ -136,7 +102,7 @@ const getConversations = async (req, res) => {
   }
 };
 
-// Get messages between users
+// Get messages between two users
 const getMessages = async (req, res) => {
   try {
     const { userId } = req.params;
@@ -156,11 +122,13 @@ const getMessages = async (req, res) => {
     .populate('senderId', 'name email profilePicture role')
     .populate('receiverId', 'name email profilePicture role');
     
+    // Mark messages as read
     await Message.updateMany(
       { senderId: userId, receiverId: req.user.id, isRead: false },
       { isRead: true, readAt: new Date() }
     );
     
+    // Update conversation unread count
     const conversation = await Conversation.findOne({
       participants: { $all: [req.user.id, userId] }
     });
@@ -176,24 +144,6 @@ const getMessages = async (req, res) => {
     });
   } catch (err) {
     console.error('Get messages error:', err);
-    res.status(500).json({ message: err.message });
-  }
-};
-
-// Get user profile for messaging
-const getUserProfile = async (req, res) => {
-  try {
-    const { userId } = req.params;
-    const user = await User.findById(userId)
-      .select('-password')
-      .populate('reviews.userId', 'name profilePicture');
-    
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
-    
-    res.json({ profile: user });
-  } catch (err) {
     res.status(500).json({ message: err.message });
   }
 };
@@ -250,7 +200,6 @@ module.exports = {
   sendMessage,
   getConversations,
   getMessages,
-  getUserProfile,
   markAsRead,
   deleteMessage,
   getUnreadCount
