@@ -232,3 +232,43 @@ module.exports = {
   updateLocation,
   getUserStats
 };
+
+// Update cover photo
+const updateCoverPhoto = async (req, res) => {
+  try {
+    const { coverUrl } = req.body;
+    
+    if (!coverUrl) {
+      return res.status(400).json({ message: 'Cover URL required' });
+    }
+    
+    const user = await User.findByIdAndUpdate(
+      req.user.id,
+      { coverPhoto: coverUrl },
+      { new: true }
+    ).select('-password');
+    
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    
+    res.json({ success: true, coverPhoto: user.coverPhoto });
+  } catch (err) {
+    console.error('Update cover photo error:', err);
+    res.status(500).json({ message: err.message });
+  }
+};
+
+module.exports = {
+  getProfile,
+  getPublicProfile,
+  updateProfile,
+  addEducation,
+  addCertification,
+  addLanguage,
+  deleteEducation,
+  uploadProfilePicture,
+  updateCoverPhoto,
+  updateLocation,
+  getUserStats
+};

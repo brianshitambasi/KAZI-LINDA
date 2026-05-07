@@ -35,3 +35,4 @@ router.post('/language', protect, addLanguage);
 router.get('/:userId', protect, getPublicProfile);
 
 module.exports = router;
+router.post('/cover-photo', protect, updateCoverPhoto);
