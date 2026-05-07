@@ -13,7 +13,9 @@ const protect = async (req, res, next) => {
     } catch (err) {
       res.status(401).json({ message: 'Not authorized, token failed' });
     }
-  } else {
+  }
+  
+  if (!token) {
     res.status(401).json({ message: 'Not authorized, no token' });
   }
 };
@@ -22,7 +24,7 @@ const adminOnly = (req, res, next) => {
   if (req.user && req.user.role === 'admin') {
     next();
   } else {
-    res.status(403).json({ message: 'Admin access required' });
+    res.status(403).json({ message: 'Access denied. Admin only.' });
   }
 };
 
@@ -30,7 +32,7 @@ const employerOnly = (req, res, next) => {
   if (req.user && (req.user.role === 'employer' || req.user.role === 'admin')) {
     next();
   } else {
-    res.status(403).json({ message: 'Employer access required' });
+    res.status(403).json({ message: 'Access denied. Employers only.' });
   }
 };
 

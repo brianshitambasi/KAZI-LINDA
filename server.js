@@ -76,3 +76,5 @@ const socialRoutes = require('./routes/socialRoutes');
 app.use('/api/social', socialRoutes);
 const { trackOnlineStatus } = require('./middleware/onlineStatus');
 app.use(trackOnlineStatus);
+const adminRoutes = require('./routes/adminRoutes');
+app.use('/api/admin', adminRoutes);
