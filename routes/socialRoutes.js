@@ -49,3 +49,4 @@ router.put('/notifications/read', protect, markNotificationsRead);
 router.post('/online', protect, updateOnlineStatus);
 
 module.exports = router;
+router.get('/user-posts/:userId', protect, getUserPosts);

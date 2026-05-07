@@ -292,3 +292,17 @@ module.exports = {
   getFollowing,
   checkFollowing
 };
+
+// Get user's own posts (for profile page)
+const getUserPosts = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const posts = await Post.find({ author: userId })
+      .populate('author', 'name profilePicture')
+      .sort({ createdAt: -1 })
+      .limit(50);
+    res.json(posts);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
