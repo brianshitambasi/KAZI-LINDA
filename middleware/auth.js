@@ -20,6 +20,7 @@ const protect = async (req, res, next) => {
   }
 };
 
+// Role-based middleware
 const adminOnly = (req, res, next) => {
   if (req.user && req.user.role === 'admin') {
     next();
@@ -36,4 +37,20 @@ const employerOnly = (req, res, next) => {
   }
 };
 
-module.exports = { protect, adminOnly, employerOnly };
+const workerOnly = (req, res, next) => {
+  if (req.user && (req.user.role === 'worker' || req.user.role === 'admin')) {
+    next();
+  } else {
+    res.status(403).json({ message: 'Access denied. Workers only.' });
+  }
+};
+
+const embassyOnly = (req, res, next) => {
+  if (req.user && (req.user.role === 'embassy' || req.user.role === 'admin')) {
+    next();
+  } else {
+    res.status(403).json({ message: 'Access denied. Embassy only.' });
+  }
+};
+
+module.exports = { protect, adminOnly, employerOnly, workerOnly, embassyOnly };

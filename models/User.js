@@ -92,3 +92,5 @@ userSchema.methods.updateLastSeen = async function() {
 };
 
 module.exports = mongoose.model('User', userSchema);
+// Ensure profilePicture field exists and is properly indexed
+userSchema.index({ profilePicture: 1 });

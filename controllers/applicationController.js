@@ -1,21 +1,27 @@
 const Application = require('../models/Application');
 const Job = require('../models/Job');
+const User = require('../models/User');
 
-// Apply for a job
-const applyForJob = async (req, res) => {
+// Apply for a job (workers only)
+const createApplication = async (req, res) => {
   try {
-    const { jobId, coverLetter, experience } = req.body;
+    if (req.user.role !== 'worker' && req.user.role !== 'admin') {
+      return res.status(403).json({ message: 'Only workers can apply for jobs' });
+    }
+    
+    const { jobId } = req.body;
+    const job = await Job.findById(jobId);
+    if (!job) return res.status(404).json({ message: 'Job not found' });
     
     const existing = await Application.findOne({ jobId, workerId: req.user.id });
     if (existing) {
-      return res.status(400).json({ message: 'Already applied for this job' });
+      return res.status(400).json({ message: 'You have already applied for this job' });
     }
     
     const application = await Application.create({
       jobId,
       workerId: req.user.id,
-      coverLetter,
-      experience
+      status: 'pending'
     });
     
     res.status(201).json(application);
@@ -24,44 +30,42 @@ const applyForJob = async (req, res) => {
   }
 };
 
-// Get my applications
+// Get my applications (worker only)
 const getMyApplications = async (req, res) => {
   try {
+    if (req.user.role !== 'worker' && req.user.role !== 'admin') {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+    
     const applications = await Application.find({ workerId: req.user.id })
-      .populate('jobId', 'title description country salary salaryCurrency')
+      .populate('jobId', 'title country salary salaryCurrency employerId')
       .sort({ appliedAt: -1 });
+    
     res.json(applications);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 };
 
-// Update application status (employer only)
-const updateApplicationStatus = async (req, res) => {
+// Get all applications (admin only)
+const getAllApplications = async (req, res) => {
   try {
-    const { status, feedback } = req.body;
-    const application = await Application.findById(req.params.id).populate('jobId');
-    
-    if (!application) {
-      return res.status(404).json({ message: 'Application not found' });
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ message: 'Admin access only' });
     }
     
-    const job = await Job.findById(application.jobId);
-    if (!job || job.employerId.toString() !== req.user.id) {
-      return res.status(403).json({ message: 'Not authorized' });
-    }
+    const applications = await Application.find({})
+      .populate('workerId', 'name email phone')
+      .populate('jobId', 'title country employerId');
     
-    application.status = status;
-    await application.save();
-    
-    res.json(application);
+    res.json(applications);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 };
 
 module.exports = {
-  applyForJob,
+  createApplication,
   getMyApplications,
-  updateApplicationStatus
+  getAllApplications
 };

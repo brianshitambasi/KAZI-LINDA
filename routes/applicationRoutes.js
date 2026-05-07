@@ -1,10 +1,17 @@
 const express = require('express');
 const router = express.Router();
-const { applyForJob, getMyApplications, updateApplicationStatus } = require('../controllers/applicationController');
-const { protect, employerOnly } = require('../middleware/auth');
+const { protect, workerOnly, adminOnly } = require('../middleware/auth');
+const {
+  createApplication,
+  getMyApplications,
+  getAllApplications
+} = require('../controllers/applicationController');
 
-router.post('/', protect, applyForJob);
-router.get('/my', protect, getMyApplications);
-router.put('/:id/status', protect, employerOnly, updateApplicationStatus);
+// Workers only
+router.post('/', protect, workerOnly, createApplication);
+router.get('/my-applications', protect, workerOnly, getMyApplications);
+
+// Admin only
+router.get('/all', protect, adminOnly, getAllApplications);
 
 module.exports = router;
