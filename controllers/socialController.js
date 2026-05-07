@@ -128,19 +128,33 @@ const unfollowUser = async (req, res) => {
   }
 };
 
-// Get friends list (users you follow)
+// Get friends list
 const getFriends = async (req, res) => {
   try {
     const following = await Connection.find({ follower: req.user.id }).distinct('following');
     const friends = await User.find({ _id: { $in: following } })
-      .select('name profilePicture role currentCountry currentStatus');
+      .select('name profilePicture role currentCountry currentStatus isOnline lastSeen');
     res.json(friends);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 };
 
-// Get suggested users
+// Get online friends
+const getOnlineFriends = async (req, res) => {
+  try {
+    const following = await Connection.find({ follower: req.user.id }).distinct('following');
+    const onlineFriends = await User.find({ 
+      _id: { $in: following },
+      isOnline: true 
+    }).select('name profilePicture role');
+    res.json(onlineFriends);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// Get suggestions
 const getSuggestions = async (req, res) => {
   try {
     const following = await Connection.find({ follower: req.user.id }).distinct('following');
@@ -153,6 +167,19 @@ const getSuggestions = async (req, res) => {
     .limit(10);
     
     res.json(suggestions);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// Update online status
+const updateOnlineStatus = async (req, res) => {
+  try {
+    await User.findByIdAndUpdate(req.user.id, { 
+      isOnline: true, 
+      lastSeen: new Date() 
+    });
+    res.json({ message: 'Online status updated' });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -183,7 +210,7 @@ const getNotifications = async (req, res) => {
   }
 };
 
-// Mark notifications as read
+// Mark notifications read
 const markNotificationsRead = async (req, res) => {
   try {
     await Notification.updateMany(
@@ -204,7 +231,9 @@ module.exports = {
   followUser,
   unfollowUser,
   getFriends,
+  getOnlineFriends,
   getSuggestions,
+  updateOnlineStatus,
   getUnreadNotificationCount,
   getNotifications,
   markNotificationsRead
