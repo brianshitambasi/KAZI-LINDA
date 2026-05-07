@@ -17,7 +17,6 @@ const {
   markNotificationsRead
 } = require('../controllers/socialController');
 
-// Make sure all these functions exist in socialController
 router.get('/feed', protect, getFeed);
 router.get('/friends', protect, getFriends);
 router.get('/online-friends', protect, getOnlineFriends);
