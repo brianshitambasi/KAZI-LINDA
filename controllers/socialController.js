@@ -69,3 +69,10 @@ const deletePost = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
+
+// Make sure all functions are properly exported
+// The following functions should already be defined above:
+// getFeed, createPost, updatePost, deletePost, toggleLike, addComment,
+// followUser, unfollowUser, getFriends, getOnlineFriends, getSuggestions,
+// updateOnlineStatus, getUnreadNotificationCount, getNotifications,
+// markNotificationsRead, getFollowers, getFollowing, checkFollowing, getUserPosts
