@@ -40,3 +40,6 @@ router.post('/online', protect, updateOnlineStatus);
 router.delete('/follow/:userId', protect, unfollowUser);
 
 module.exports = router;
+// Post CRUD operations
+router.put('/posts/:postId', protect, updatePost);
+router.delete('/posts/:postId', protect, deletePost);

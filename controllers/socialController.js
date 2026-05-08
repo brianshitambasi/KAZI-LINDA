@@ -277,6 +277,8 @@ const getUserPosts = async (req, res) => {
 };
 
 module.exports = {
+  updatePost,
+  deletePost,
   getFeed,
   createPost,
   toggleLike,
@@ -294,4 +296,48 @@ module.exports = {
   getFollowing,
   checkFollowing,
   getUserPosts
+};
+
+// Update post
+const updatePost = async (req, res) => {
+  try {
+    const { postId } = req.params;
+    const { content, media, mediaType } = req.body;
+    
+    const post = await Post.findById(postId);
+    if (!post) return res.status(404).json({ message: 'Post not found' });
+    
+    // Check if user owns the post
+    if (post.author.toString() !== req.user.id && req.user.role !== 'admin') {
+      return res.status(403).json({ message: 'You can only edit your own posts' });
+    }
+    
+    if (content) post.content = content;
+    if (media) post.media = media;
+    if (mediaType) post.mediaType = mediaType;
+    
+    await post.save();
+    res.json(post);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// Delete post
+const deletePost = async (req, res) => {
+  try {
+    const { postId } = req.params;
+    const post = await Post.findById(postId);
+    if (!post) return res.status(404).json({ message: 'Post not found' });
+    
+    // Check if user owns the post
+    if (post.author.toString() !== req.user.id && req.user.role !== 'admin') {
+      return res.status(403).json({ message: 'You can only delete your own posts' });
+    }
+    
+    await post.deleteOne();
+    res.json({ message: 'Post deleted successfully' });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
 };
