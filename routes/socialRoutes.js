@@ -4,6 +4,8 @@ const { protect } = require('../middleware/auth');
 const {
   getFeed,
   createPost,
+  updatePost,
+  deletePost,
   toggleLike,
   addComment,
   followUser,
@@ -21,25 +23,37 @@ const {
   getUserPosts
 } = require('../controllers/socialController');
 
+// Feed and posts
 router.get('/feed', protect, getFeed);
+router.post('/posts', protect, createPost);
+router.put('/posts/:postId', protect, updatePost);
+router.delete('/posts/:postId', protect, deletePost);
+router.post('/posts/:postId/like', protect, toggleLike);
+router.post('/posts/:postId/comment', protect, addComment);
+
+// Follow routes
+router.post('/follow', protect, followUser);
+router.delete('/follow/:userId', protect, unfollowUser);
+router.get('/following/check/:userId', protect, checkFollowing);
+
+// Friends/Connections
 router.get('/friends', protect, getFriends);
 router.get('/online-friends', protect, getOnlineFriends);
 router.get('/suggestions', protect, getSuggestions);
+
+// User posts
+router.get('/user-posts/:userId', protect, getUserPosts);
+
+// Follower/Following lists
+router.get('/followers/:userId', protect, getFollowers);
+router.get('/following/:userId', protect, getFollowing);
+
+// Notifications
 router.get('/notifications', protect, getNotifications);
 router.get('/notifications/unread', protect, getUnreadNotificationCount);
 router.put('/notifications/read', protect, markNotificationsRead);
-router.get('/user-posts/:userId', protect, getUserPosts);
-router.get('/followers/:userId', protect, getFollowers);
-router.get('/following/:userId', protect, getFollowing);
-router.get('/following/check/:userId', protect, checkFollowing);
-router.post('/posts', protect, createPost);
-router.post('/posts/:postId/like', protect, toggleLike);
-router.post('/posts/:postId/comment', protect, addComment);
-router.post('/follow', protect, followUser);
+
+// Online status
 router.post('/online', protect, updateOnlineStatus);
-router.delete('/follow/:userId', protect, unfollowUser);
 
 module.exports = router;
-// Post CRUD operations
-router.put('/posts/:postId', protect, updatePost);
-router.delete('/posts/:postId', protect, deletePost);
