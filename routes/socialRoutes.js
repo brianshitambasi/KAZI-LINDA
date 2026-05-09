@@ -56,4 +56,13 @@ router.put('/notifications/read', protect, markNotificationsRead);
 // Online status
 router.post('/online', protect, updateOnlineStatus);
 
+// Health check (add this to avoid errors)
+router.get('/health', (req, res) => {
+  res.json({ status: 'ok', timestamp: new Date() });
+});
+
 module.exports = router;
+// Follow request routes
+router.get('/follow-requests', protect, getPendingFollowRequests);
+router.post('/follow/:connectionId/accept', protect, acceptFollow);
+router.post('/follow/:connectionId/reject', protect, rejectFollow);
