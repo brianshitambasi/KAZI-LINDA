@@ -20,7 +20,10 @@ const {
   getFollowers,
   getFollowing,
   checkFollowing,
-  getUserPosts
+  getUserPosts,
+  getPendingFollowRequests,
+  acceptFollow,
+  rejectFollow
 } = require('../controllers/socialController');
 
 // Feed and posts
@@ -35,6 +38,11 @@ router.post('/posts/:postId/comment', protect, addComment);
 router.post('/follow', protect, followUser);
 router.delete('/follow/:userId', protect, unfollowUser);
 router.get('/following/check/:userId', protect, checkFollowing);
+
+// Follow request routes
+router.get('/follow-requests', protect, getPendingFollowRequests);
+router.post('/follow/:connectionId/accept', protect, acceptFollow);
+router.post('/follow/:connectionId/reject', protect, rejectFollow);
 
 // Friends/Connections
 router.get('/friends', protect, getFriends);
@@ -56,13 +64,4 @@ router.put('/notifications/read', protect, markNotificationsRead);
 // Online status
 router.post('/online', protect, updateOnlineStatus);
 
-// Health check (add this to avoid errors)
-router.get('/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date() });
-});
-
 module.exports = router;
-// Follow request routes
-router.get('/follow-requests', protect, getPendingFollowRequests);
-router.post('/follow/:connectionId/accept', protect, acceptFollow);
-router.post('/follow/:connectionId/reject', protect, rejectFollow);

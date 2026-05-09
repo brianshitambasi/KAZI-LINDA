@@ -120,3 +120,97 @@ const getPendingFollowRequests = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
+
+// Get pending follow requests
+const getPendingFollowRequests = async (req, res) => {
+  try {
+    const pendingRequests = await Connection.find({
+      following: req.user.id,
+      status: 'pending'
+    }).populate('follower', 'name profilePicture role');
+    
+    res.json(pendingRequests);
+  } catch (err) {
+    console.error('Get pending requests error:', err);
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// Accept follow request
+const acceptFollow = async (req, res) => {
+  try {
+    const { connectionId } = req.params;
+    
+    const connection = await Connection.findById(connectionId);
+    if (!connection) {
+      return res.status(404).json({ message: 'Follow request not found' });
+    }
+    
+    if (connection.following.toString() !== req.user.id) {
+      return res.status(403).json({ message: 'Unauthorized' });
+    }
+    
+    connection.status = 'accepted';
+    await connection.save();
+    
+    // Add to followers/following arrays
+    await User.findByIdAndUpdate(connection.follower, {
+      $addToSet: { following: connection.following }
+    });
+    
+    await User.findByIdAndUpdate(connection.following, {
+      $addToSet: { followers: connection.follower }
+    });
+    
+    res.json({ message: 'Follow request accepted', success: true });
+  } catch (err) {
+    console.error('Accept follow error:', err);
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// Reject follow request
+const rejectFollow = async (req, res) => {
+  try {
+    const { connectionId } = req.params;
+    
+    const connection = await Connection.findById(connectionId);
+    if (!connection) {
+      return res.status(404).json({ message: 'Follow request not found' });
+    }
+    
+    if (connection.following.toString() !== req.user.id) {
+      return res.status(403).json({ message: 'Unauthorized' });
+    }
+    
+    await connection.deleteOne();
+    res.json({ message: 'Follow request rejected', success: true });
+  } catch (err) {
+    console.error('Reject follow error:', err);
+    res.status(500).json({ message: err.message });
+  }
+};
+module.exports = {
+  getFeed,
+  createPost,
+  updatePost,
+  deletePost,
+  toggleLike,
+  addComment,
+  followUser,
+  unfollowUser,
+  getFriends,
+  getOnlineFriends,
+  getSuggestions,
+  updateOnlineStatus,
+  getUnreadNotificationCount,
+  getNotifications,
+  markNotificationsRead,
+  getFollowers,
+  getFollowing,
+  checkFollowing,
+  getUserPosts,
+  getPendingFollowRequests,
+  acceptFollow,
+  rejectFollow
+};
