@@ -1,7 +1,8 @@
 const express = require('express');
 const router = express.Router();
-const { getSettings, updateSettings, const { protect } = require('../middleware/auth');
-const { getSettings, updateSettings, const {
+const { protect } = require('../middleware/auth');
+const { getSettings, updateSettings } = require('../controllers/settingsController');
+const {
   getProfile,
   getPublicProfile,
   updateProfile,
@@ -15,32 +16,36 @@ const { getSettings, updateSettings, const {
   getUserStats
 } = require('../controllers/profileController');
 
-// Protected routes (require authentication)
-router.get('/me', protect, getProfile);
-router.put('/me', protect, updateProfile);
-router.get('/stats', protect, getUserStats);
-router.post('/location', protect, updateLocation);
-router.post('/profile-picture', protect, uploadProfilePicture);
-router.post('/cover-photo', protect, updateCoverPhoto);
+// All routes require authentication
+router.use(protect);
 
-// Education routes
-router.post('/education', protect, addEducation);
-router.delete('/education/:eduId', protect, deleteEducation);
+// Profile routes
+router.get('/me', getProfile);
+router.put('/me', updateProfile);
+router.get('/public/:userId', getPublicProfile);
 
-// Certification routes
-router.post('/certification', protect, addCertification);
+// Settings routes
+router.get('/settings', getSettings);
+router.put('/settings', updateSettings);
 
-// Language routes
-router.post('/language', protect, addLanguage);
+// Profile picture and cover
+router.post('/profile-picture', uploadProfilePicture);
+router.post('/cover-photo', updateCoverPhoto);
 
-// Public profile route
-router.get('/:userId', protect, getPublicProfile);
+// Location
+router.put('/location', updateLocation);
+
+// User stats
+router.get('/stats', getUserStats);
+
+// Education
+router.post('/education', addEducation);
+router.delete('/education/:eduId', deleteEducation);
+
+// Certification
+router.post('/certification', addCertification);
+
+// Language
+router.post('/language', addLanguage);
 
 module.exports = router;
-// Settings routes
-router.get('/settings', protect, getSettings);
-router.put('/settings', protect, updateSettings);
-
-// Settings routes
-router.get('/settings', protect, getSettings);
-router.put('/settings', protect, updateSettings);
