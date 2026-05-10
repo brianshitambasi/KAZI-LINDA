@@ -238,6 +238,9 @@ const sendWarning = async (req, res) => {
 };
 
 module.exports = {
+  getReports,
+  updateReportStatus,
+  getActivityLog,
   getAllUsers,
   getUserById,
   createUser,
@@ -253,4 +256,195 @@ module.exports = {
   removeFromBlacklist,
   getStats,
   sendWarning
+};
+
+// ============= REPORTS MANAGEMENT =============
+
+// Get all reports (complaints about employers)
+const getReports = async (req, res) => {
+  try {
+    const Employer = require('../models/Employer');
+    const employers = await Employer.find({ 
+      complaints: { $exists: true, $ne: [] } 
+    }).populate('complaints.userId', 'name email');
+    
+    const reports = [];
+    employers.forEach(employer => {
+      if (employer.complaints && employer.complaints.length > 0) {
+        employer.complaints.forEach(complaint => {
+          reports.push({
+            _id: complaint._id,
+            employerId: employer._id,
+            employerName: employer.name,
+            companyName: employer.companyName,
+            complaint: complaint.complaint,
+            status: complaint.status || 'pending',
+            reportedBy: complaint.userId,
+            date: complaint.date,
+            resolution: complaint.resolution
+          });
+        });
+      }
+    });
+    
+    // Sort by date (newest first)
+    reports.sort((a, b) => new Date(b.date) - new Date(a.date));
+    res.json(reports);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// Update report status
+const updateReportStatus = async (req, res) => {
+  try {
+    const { reportId } = req.params;
+    const { status, resolution } = req.body;
+    const Employer = require('../models/Employer');
+    
+    const employer = await Employer.findOne({ 'complaints._id': reportId });
+    if (!employer) {
+      return res.status(404).json({ message: 'Report not found' });
+    }
+    
+    const complaint = employer.complaints.id(reportId);
+    if (!complaint) {
+      return res.status(404).json({ message: 'Complaint not found' });
+    }
+    
+    complaint.status = status;
+    if (resolution) complaint.resolution = resolution;
+    if (status === 'resolved') complaint.resolvedAt = new Date();
+    
+    await employer.save();
+    res.json({ message: 'Report updated successfully', complaint });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// ============= ACTIVITY LOG =============
+
+// Get activity log (combine data from multiple sources)
+const getActivityLog = async (req, res) => {
+  try {
+    const { limit = 50, page = 1, type } = req.query;
+    const skip = (page - 1) * parseInt(limit);
+    
+    const User = require('../models/User');
+    const Job = require('../models/Job');
+    const Application = require('../models/Application');
+    const Post = require('../models/Post');
+    const Message = require('../models/Message');
+    
+    // Fetch recent activities from different collections
+    const [recentUsers, recentJobs, recentApplications, recentPosts, recentMessages] = await Promise.all([
+      User.find({}).sort({ createdAt: -1 }).limit(100).select('name email role createdAt'),
+      Job.find({}).sort({ createdAt: -1 }).limit(100).populate('employerId', 'name'),
+      Application.find({}).sort({ appliedAt: -1 }).limit(100).populate('workerId', 'name').populate('jobId', 'title'),
+      Post.find({}).sort({ createdAt: -1 }).limit(100).populate('author', 'name'),
+      Message.find({}).sort({ createdAt: -1 }).limit(100).populate('senderId', 'name').populate('receiverId', 'name')
+    ]);
+    
+    // Combine into activity log
+    const activities = [];
+    
+    recentUsers.forEach(user => {
+      activities.push({
+        id: user._id,
+        type: 'user_registered',
+        description: `New user registered: ${user.name}`,
+        user: user.name,
+        details: `Role: ${user.role}`,
+        timestamp: user.createdAt,
+        icon: 'user_plus',
+        color: '#45bd62'
+      });
+    });
+    
+    recentJobs.forEach(job => {
+      activities.push({
+        id: job._id,
+        type: 'job_posted',
+        description: `New job posted: ${job.title}`,
+        user: job.employerId?.name || 'Unknown',
+        details: `Country: ${job.country} | Salary: ${job.salary}`,
+        timestamp: job.createdAt,
+        icon: 'briefcase',
+        color: '#1877f2'
+      });
+    });
+    
+    recentApplications.forEach(app => {
+      activities.push({
+        id: app._id,
+        type: 'job_applied',
+        description: `${app.workerId?.name || 'Someone'} applied for a job`,
+        user: app.workerId?.name || 'Anonymous',
+        details: `Job: ${app.jobId?.title || 'Unknown'}`,
+        timestamp: app.appliedAt,
+        icon: 'file_alt',
+        color: KL_BRAND
+      });
+    });
+    
+    recentPosts.forEach(post => {
+      activities.push({
+        id: post._id,
+        type: 'post_created',
+        description: `${post.author?.name || 'Someone'} shared a post`,
+        user: post.author?.name || 'Anonymous',
+        details: post.content?.substring(0, 100) || '',
+        timestamp: post.createdAt,
+        icon: 'comment',
+        color: '#e41e3f'
+      });
+    });
+    
+    recentMessages.forEach(msg => {
+      activities.push({
+        id: msg._id,
+        type: 'message_sent',
+        description: `Message sent`,
+        user: msg.senderId?.name || 'Anonymous',
+        details: `To: ${msg.receiverId?.name || 'Unknown'}`,
+        timestamp: msg.createdAt,
+        icon: 'envelope',
+        color: '#7c3aed'
+      });
+    });
+    
+    // Sort by timestamp (newest first)
+    activities.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+    
+    // Filter by type if specified
+    let filteredActivities = activities;
+    if (type && type !== 'all') {
+      filteredActivities = activities.filter(a => a.type === type);
+    }
+    
+    // Paginate
+    const paginatedActivities = filteredActivities.slice(skip, skip + parseInt(limit));
+    
+    res.json({
+      activities: paginatedActivities,
+      total: filteredActivities.length,
+      page: parseInt(page),
+      limit: parseInt(limit),
+      totalPages: Math.ceil(filteredActivities.length / parseInt(limit))
+    });
+  } catch (err) {
+    console.error('Activity log error:', err);
+    res.status(500).json({ message: err.message });
+  }
+};
+
+module.exports = {
+  getReports,
+  updateReportStatus,
+  getActivityLog,
+  // ... existing exports
+  getReports,
+  updateReportStatus,
+  getActivityLog
 };

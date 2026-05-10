@@ -1,7 +1,13 @@
 const express = require('express');
 const router = express.Router();
-const { protect, adminOnly } = require('../middleware/auth');
 const {
+  getReports,
+  updateReportStatus,
+  getActivityLog, protect, adminOnly } = require('../middleware/auth');
+const {
+  getReports,
+  updateReportStatus,
+  getActivityLog,
   getAllUsers,
   getUserById,
   createUser,
@@ -47,3 +53,10 @@ router.get('/stats', getStats);
 router.post('/send-warning', sendWarning);
 
 module.exports = router;
+
+// ============= REPORTS MANAGEMENT =============
+router.get('/reports', getReports);
+router.put('/reports/:reportId', updateReportStatus);
+
+// ============= ACTIVITY LOG =============
+router.get('/activity-log', getActivityLog);
