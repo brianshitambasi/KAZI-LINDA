@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const { protect } = require('../middleware/auth');
-const {
+const { getSettings, updateSettings, const { protect } = require('../middleware/auth');
+const { getSettings, updateSettings, const {
   getProfile,
   getPublicProfile,
   updateProfile,
@@ -37,6 +37,10 @@ router.post('/language', protect, addLanguage);
 router.get('/:userId', protect, getPublicProfile);
 
 module.exports = router;
+// Settings routes
+router.get('/settings', protect, getSettings);
+router.put('/settings', protect, updateSettings);
+
 // Settings routes
 router.get('/settings', protect, getSettings);
 router.put('/settings', protect, updateSettings);

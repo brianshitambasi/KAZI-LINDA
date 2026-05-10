@@ -62,6 +62,34 @@ const userSchema = new mongoose.Schema({
     email: { type: String, default: '' }
   },
   
+  // Settings (added here inside schema)
+  settings: {
+    theme: { type: String, enum: ['light', 'dark', 'system'], default: 'light' },
+    fontSize: { type: String, enum: ['small', 'medium', 'large'], default: 'medium' },
+    compactView: { type: Boolean, default: false },
+    highContrast: { type: Boolean, default: false },
+    notifications: {
+      email: { type: Boolean, default: true },
+      push: { type: Boolean, default: true },
+      jobAlerts: { type: Boolean, default: true },
+      messageAlerts: { type: Boolean, default: true },
+      emergencyAlerts: { type: Boolean, default: true },
+      friendRequestAlerts: { type: Boolean, default: true },
+      soundEnabled: { type: Boolean, default: true },
+      soundVolume: { type: Number, default: 70, min: 0, max: 100 },
+      soundType: { type: String, default: 'modern' }
+    },
+    privacy: {
+      profileVisibility: { type: String, enum: ['public', 'friends', 'private'], default: 'public' },
+      showEmail: { type: Boolean, default: false },
+      showPhone: { type: Boolean, default: false },
+      showLocation: { type: Boolean, default: true },
+      allowTagging: { type: Boolean, default: true }
+    },
+    language: { type: String, default: 'en' },
+    sessionTimeout: { type: Number, default: 30 }
+  },
+  
   // Timestamps
   lastCheckIn: { type: Date },
   currentLocation: { country: String, city: String, lat: Number, lng: Number }
@@ -91,48 +119,9 @@ userSchema.methods.updateLastSeen = async function() {
   await this.save();
 };
 
-module.exports = mongoose.model('User', userSchema);
-// Ensure profilePicture field exists and is properly indexed
-userSchema.index({ profilePicture: 1 });
+const User = mongoose.model('User', userSchema);
+
 // Add followers and following arrays if not already present
-// followers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
-// following: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+// This is just for reference - the schema already includes them
 
-// Add settings field to user schema
-const settingsSchema = {
-  theme: { type: String, enum: ['light', 'dark', 'system'], default: 'light' },
-  fontSize: { type: String, enum: ['small', 'medium', 'large'], default: 'medium' },
-  compactView: { type: Boolean, default: false },
-  highContrast: { type: Boolean, default: false },
-  
-  // Notification settings
-  notifications: {
-    email: { type: Boolean, default: true },
-    push: { type: Boolean, default: true },
-    jobAlerts: { type: Boolean, default: true },
-    messageAlerts: { type: Boolean, default: true },
-    emergencyAlerts: { type: Boolean, default: true },
-    friendRequestAlerts: { type: Boolean, default: true },
-    soundEnabled: { type: Boolean, default: true },
-    soundVolume: { type: Number, default: 70, min: 0, max: 100 },
-    soundType: { type: String, default: 'modern' }
-  },
-  
-  // Privacy settings
-  privacy: {
-    profileVisibility: { type: String, enum: ['public', 'friends', 'private'], default: 'public' },
-    showEmail: { type: Boolean, default: false },
-    showPhone: { type: Boolean, default: false },
-    showLocation: { type: Boolean, default: true },
-    allowTagging: { type: Boolean, default: true }
-  },
-  
-  // Preferences
-  language: { type: String, default: 'en' },
-  sessionTimeout: { type: Number, default: 30 } // minutes
-};
-
-// Add settings to user schema if not already present
-if (!User.schema.paths['settings']) {
-  User.schema.add({ settings: settingsSchema });
-}
+module.exports = User;
