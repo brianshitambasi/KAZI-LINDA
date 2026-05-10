@@ -37,3 +37,6 @@ router.post('/language', protect, addLanguage);
 router.get('/:userId', protect, getPublicProfile);
 
 module.exports = router;
+// Settings routes
+router.get('/settings', protect, getSettings);
+router.put('/settings', protect, updateSettings);

@@ -97,3 +97,42 @@ userSchema.index({ profilePicture: 1 });
 // Add followers and following arrays if not already present
 // followers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
 // following: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+
+// Add settings field to user schema
+const settingsSchema = {
+  theme: { type: String, enum: ['light', 'dark', 'system'], default: 'light' },
+  fontSize: { type: String, enum: ['small', 'medium', 'large'], default: 'medium' },
+  compactView: { type: Boolean, default: false },
+  highContrast: { type: Boolean, default: false },
+  
+  // Notification settings
+  notifications: {
+    email: { type: Boolean, default: true },
+    push: { type: Boolean, default: true },
+    jobAlerts: { type: Boolean, default: true },
+    messageAlerts: { type: Boolean, default: true },
+    emergencyAlerts: { type: Boolean, default: true },
+    friendRequestAlerts: { type: Boolean, default: true },
+    soundEnabled: { type: Boolean, default: true },
+    soundVolume: { type: Number, default: 70, min: 0, max: 100 },
+    soundType: { type: String, default: 'modern' }
+  },
+  
+  // Privacy settings
+  privacy: {
+    profileVisibility: { type: String, enum: ['public', 'friends', 'private'], default: 'public' },
+    showEmail: { type: Boolean, default: false },
+    showPhone: { type: Boolean, default: false },
+    showLocation: { type: Boolean, default: true },
+    allowTagging: { type: Boolean, default: true }
+  },
+  
+  // Preferences
+  language: { type: String, default: 'en' },
+  sessionTimeout: { type: Number, default: 30 } // minutes
+};
+
+// Add settings to user schema if not already present
+if (!User.schema.paths['settings']) {
+  User.schema.add({ settings: settingsSchema });
+}

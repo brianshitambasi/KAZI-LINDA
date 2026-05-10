@@ -383,3 +383,5 @@ module.exports = {
   updateReportStatus,
   getActivityLog
 };
+// Update getAllUsers to include profilePicture
+// Find this function and make sure it includes profilePicture
