@@ -200,7 +200,7 @@ const unfollowUser = async (req, res) => {
 // Get friends list
 const getFriends = async (req, res) => {
   try {
-    const following = await Connection.find({ follower: req.user.id, status: 'accepted' }).distinct('following');
+    const following = await Connection.find({ follower: req.user.id }).distinct('following');
     const friends = await User.find({ _id: { $in: following } })
       .select('name profilePicture role currentCountry currentStatus isOnline lastSeen');
     res.json(friends);
@@ -212,7 +212,7 @@ const getFriends = async (req, res) => {
 // Get online friends
 const getOnlineFriends = async (req, res) => {
   try {
-    const following = await Connection.find({ follower: req.user.id, status: 'accepted' }).distinct('following');
+    const following = await Connection.find({ follower: req.user.id }).distinct('following');
     const onlineFriends = await User.find({ _id: { $in: following }, isOnline: true })
       .select('name profilePicture role');
     res.json(onlineFriends);
@@ -282,14 +282,9 @@ const markNotificationsRead = async (req, res) => {
 // Get followers
 const getFollowers = async (req, res) => {
   try {
-    const user = await User.findById(req.params.userId)
-      .populate('followers', 'name profilePicture role currentStatus isOnline');
-    
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
-    
-    res.json(user.followers || []);
+    const connections = await Connection.find({ following: req.params.userId, status: 'accepted' })
+      .populate('follower', 'name profilePicture role currentStatus isOnline');
+    res.json(connections.map(c => c.follower));
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -298,14 +293,9 @@ const getFollowers = async (req, res) => {
 // Get following
 const getFollowing = async (req, res) => {
   try {
-    const user = await User.findById(req.params.userId)
+    const connections = await Connection.find({ follower: req.params.userId, status: 'accepted' })
       .populate('following', 'name profilePicture role currentStatus isOnline');
-    
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
-    
-    res.json(user.following || []);
+    res.json(connections.map(c => c.following));
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -430,4 +420,71 @@ module.exports = {
   getPendingFollowRequests,
   acceptFollow,
   rejectFollow
+};
+
+// Updated acceptFollow - ensures User model followers/following arrays are updated
+const acceptFollow = async (req, res) => {
+  try {
+    const { connectionId } = req.params;
+    
+    const connection = await Connection.findById(connectionId);
+    if (!connection) {
+      return res.status(404).json({ message: 'Follow request not found' });
+    }
+    
+    if (connection.following.toString() !== req.user.id) {
+      return res.status(403).json({ message: 'Unauthorized' });
+    }
+    
+    connection.status = 'accepted';
+    await connection.save();
+    
+    // Update the follower's following array
+    await User.findByIdAndUpdate(connection.follower, {
+      $addToSet: { following: connection.following }
+    });
+    
+    // Update the following's followers array
+    await User.findByIdAndUpdate(connection.following, {
+      $addToSet: { followers: connection.follower }
+    });
+    
+    res.json({ message: 'Follow request accepted', success: true });
+  } catch (err) {
+    console.error('Accept follow error:', err);
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// Also fix the getFollowers and getFollowing to use the User model directly
+const getFollowers = async (req, res) => {
+  try {
+    const user = await User.findById(req.params.userId)
+      .populate('followers', 'name profilePicture role currentStatus isOnline');
+    
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    
+    res.json(user.followers || []);
+  } catch (err) {
+    console.error('Get followers error:', err);
+    res.status(500).json({ message: err.message });
+  }
+};
+
+const getFollowing = async (req, res) => {
+  try {
+    const user = await User.findById(req.params.userId)
+      .populate('following', 'name profilePicture role currentStatus isOnline');
+    
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    
+    res.json(user.following || []);
+  } catch (err) {
+    console.error('Get following error:', err);
+    res.status(500).json({ message: err.message });
+  }
 };

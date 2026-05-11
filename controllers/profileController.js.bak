@@ -8,6 +8,7 @@ const getProfile = async (req, res) => {
     }
     
     const user = await User.findById(req.user.id).select('-password');
+    
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
@@ -19,18 +20,17 @@ const getProfile = async (req, res) => {
   }
 };
 
-// Get public profile by ID (includes followers and following)
+// Get public profile by ID
 const getPublicProfile = async (req, res) => {
   try {
     const { userId } = req.params;
+    
     if (!userId) {
       return res.status(400).json({ message: 'User ID required' });
     }
     
     const user = await User.findById(userId)
-      .select('-password -email -phone -nextOfKin -twoFactorEnabled -__v')
-      .populate('followers', 'name profilePicture role isOnline')
-      .populate('following', 'name profilePicture role isOnline');
+      .select('-password -email -phone -nextOfKin -twoFactorEnabled');
     
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
@@ -49,7 +49,8 @@ const getPublicProfile = async (req, res) => {
       currentStatus: user.currentStatus || 'available',
       skills: user.skills || [],
       languages: user.languages || [],
-      experience: user.experience || '',
+      education: user.education || [],
+      certifications: user.certifications || [],
       rating: user.rating || 0,
       totalRatings: user.totalRatings || 0,
       followers: user.followers || [],
@@ -182,7 +183,10 @@ const uploadProfilePicture = async (req, res) => {
 const updateCoverPhoto = async (req, res) => {
   try {
     const { coverUrl } = req.body;
-    if (!coverUrl) return res.status(400).json({ message: 'Cover URL required' });
+    
+    if (!coverUrl) {
+      return res.status(400).json({ message: 'Cover URL required' });
+    }
     
     const user = await User.findByIdAndUpdate(
       req.user.id,
@@ -190,7 +194,10 @@ const updateCoverPhoto = async (req, res) => {
       { new: true }
     ).select('-password');
     
-    if (!user) return res.status(404).json({ message: 'User not found' });
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    
     res.json({ success: true, coverPhoto: user.coverPhoto });
   } catch (err) {
     console.error('Update cover photo error:', err);
@@ -257,4 +264,117 @@ module.exports = {
   updateCoverPhoto,
   updateLocation,
   getUserStats
+};
+
+// ============= SETTINGS MANAGEMENT =============
+
+// Get user settings
+const getSettings = async (req, res) => {
+  try {
+    const User = require('../models/User');
+    const user = await User.findById(req.user.id).select('settings');
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    res.json(user.settings || {
+      theme: 'light',
+      fontSize: 'medium',
+      compactView: false,
+      highContrast: false,
+      notifications: {
+        email: true,
+        push: true,
+        jobAlerts: true,
+        messageAlerts: true,
+        emergencyAlerts: true,
+        friendRequestAlerts: true,
+        soundEnabled: true,
+        soundVolume: 70,
+        soundType: 'modern'
+      },
+      privacy: {
+        profileVisibility: 'public',
+        showEmail: false,
+        showPhone: false,
+        showLocation: true,
+        allowTagging: true
+      },
+      language: 'en',
+      sessionTimeout: 30
+    });
+  } catch (err) {
+    console.error('Get settings error:', err);
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// Update user settings
+const updateSettings = async (req, res) => {
+  try {
+    const User = require('../models/User');
+    const { settings } = req.body;
+    const user = await User.findByIdAndUpdate(
+      req.user.id,
+      { settings },
+      { new: true, runValidators: true }
+    ).select('settings');
+    
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    
+    res.json({ success: true, settings: user.settings });
+  } catch (err) {
+    console.error('Update settings error:', err);
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// Update module.exports to include settings functions
+// Note: If module.exports already exists, we need to replace it
+// For now, we'll append to ensure they're added
+
+// Update getPublicProfile to include followers and following
+const getPublicProfile = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    if (!userId) {
+      return res.status(400).json({ message: 'User ID required' });
+    }
+    
+    const user = await User.findById(userId)
+      .select('-password -email -phone -nextOfKin -twoFactorEnabled')
+      .populate('followers', 'name profilePicture role')
+      .populate('following', 'name profilePicture role');
+    
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    
+    res.json({
+      _id: user._id,
+      name: user.name,
+      profilePicture: user.profilePicture || '',
+      coverPhoto: user.coverPhoto || '',
+      role: user.role,
+      bio: user.bio || '',
+      countryOfOrigin: user.countryOfOrigin || 'Kenya',
+      currentCountry: user.currentCountry || '',
+      currentCity: user.currentCity || '',
+      currentStatus: user.currentStatus || 'available',
+      skills: user.skills || [],
+      languages: user.languages || [],
+      experience: user.experience || '',
+      rating: user.rating || 0,
+      totalRatings: user.totalRatings || 0,
+      followers: user.followers || [],
+      following: user.following || [],
+      isOnline: user.isOnline || false,
+      lastSeen: user.lastSeen,
+      createdAt: user.createdAt
+    });
+  } catch (err) {
+    console.error('Get public profile error:', err);
+    res.status(500).json({ message: err.message });
+  }
 };
