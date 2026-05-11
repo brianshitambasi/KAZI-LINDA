@@ -213,5 +213,74 @@ module.exports = {
   reportEmployer,
   getBlacklist,
   createEmployerProfile,
-  getEmployerStats
+  getEmployerStats,
+  getEmployerProfile,
+  updateEmployerProfile,
+  getPublicEmployerProfile
 };
+
+// Get employer profile (for the logged-in employer)
+const getEmployerProfile = async (req, res) => {
+  try {
+    const Employer = require('../models/Employer');
+    let employer = await Employer.findOne({ email: req.user.email });
+    
+    if (!employer) {
+      // Create a basic profile if none exists
+      employer = new Employer({
+        name: req.user.name,
+        email: req.user.email,
+        phone: req.user.phone,
+        country: '',
+        isActive: true
+      });
+      await employer.save();
+    }
+    
+    res.json(employer);
+  } catch (err) {
+    console.error('Get employer profile error:', err);
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// Update employer profile
+const updateEmployerProfile = async (req, res) => {
+  try {
+    const Employer = require('../models/Employer');
+    const updateData = req.body;
+    updateData.updatedAt = new Date();
+    
+    let employer = await Employer.findOneAndUpdate(
+      { email: req.user.email },
+      updateData,
+      { new: true, upsert: true, runValidators: true }
+    );
+    
+    res.json({ success: true, employer });
+  } catch (err) {
+    console.error('Update employer profile error:', err);
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// Get public employer profile (for workers)
+const getPublicEmployerProfile = async (req, res) => {
+  try {
+    const Employer = require('../models/Employer');
+    const { id } = req.params;
+    const employer = await Employer.findById(id).select('-documents -__v');
+    
+    if (!employer) {
+      return res.status(404).json({ message: 'Employer not found' });
+    }
+    
+    res.json(employer);
+  } catch (err) {
+    console.error('Get public employer profile error:', err);
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// Make sure to update module.exports
+// Check if these functions are already exported, if not add them
