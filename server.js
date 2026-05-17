@@ -17,6 +17,11 @@ const jobRoutes = require('./routes/jobRoutes');
 const employerRoutes = require('./routes/employerRoutes');
 const applicationRoutes = require('./routes/applicationRoutes');
 const emergencyRoutes = require('./routes/emergencyRoutes');
+const profileRoutes = require('./routes/profileRoutes');
+const socialRoutes = require('./routes/socialRoutes');
+const messageRoutes = require('./routes/messageRoutes');
+const storyRoutes = require('./routes/storyRoutes');
+const adminRoutes = require('./routes/adminRoutes');
 
 const app = express();
 const server = http.createServer(app);
@@ -152,6 +157,11 @@ app.use('/api/jobs', jobRoutes);
 app.use('/api/employers', employerRoutes);
 app.use('/api/applications', applicationRoutes);
 app.use('/api/emergency', emergencyRoutes);
+app.use('/api/profile', profileRoutes);
+app.use('/api/social', socialRoutes);
+app.use('/api/messages', messageRoutes);
+app.use('/api/stories', storyRoutes);
+app.use('/api/admin', adminRoutes);
 
 // Test route
 app.get('/', (req, res) => res.send('KAZI LINDA API is running'));
