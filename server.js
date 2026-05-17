@@ -207,31 +207,6 @@ app.use((err, req, res, next) => {
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => console.log(`íº€ Server running on port ${PORT}`));
 
-// Message routes
-const messageRoutes = require('./routes/messageRoutes');
-app.use('/api/messages', messageRoutes);
-
-// Profile routes
-const profileRoutes = require('./routes/profileRoutes');
-app.use('/api/profile', profileRoutes);
-
-// Social routes
-const socialRoutes = require('./routes/socialRoutes');
-app.use('/api/social', socialRoutes);
-
-// Online status middleware
-const { trackOnlineStatus } = require('./middleware/onlineStatus');
-app.use(trackOnlineStatus);
-
-// Admin routes
-const adminRoutes = require('./routes/adminRoutes');
-app.use('/api/admin', adminRoutes);
-
-// Story routes
-const storyRoutes = require('./routes/storyRoutes');
-app.use('/api/stories', storyRoutes);
-
-// Role-based authorization middleware for routes
 const authorize = (roles) => {
   return (req, res, next) => {
     if (!req.user) {
