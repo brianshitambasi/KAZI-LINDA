@@ -139,3 +139,11 @@ module.exports = {
   updateProfile,
   updateCheckIn
 };
+
+module.exports = {
+  register,
+  login,
+  getMe,
+  updateProfile,
+  updateCheckIn
+};
