@@ -7,6 +7,9 @@ const socketIo = require('socket.io');
 const helmet = require('helmet');
 const compression = require('compression');
 const morgan = require('morgan');
+const rateLimit = require('express-rate-limit');
+const mongoSanitize = require('express-mongo-sanitize');
+const xss = require('xss-clean');
 
 // Import routes
 const authRoutes = require('./routes/authRoutes');
@@ -27,15 +30,106 @@ const io = socketIo(server, {
 // Make io accessible to routes
 app.set('io', io);
 
-// Middleware
-app.use(helmet());
-app.use(compression());
-app.use(morgan('dev'));
-app.use(cors());
-app.use(express.json());
+// ========== SECURITY MIDDLEWARE ==========
 
-// MongoDB connection
-mongoose.connect(process.env.MONGO_URI)
+// 1. Helmet for security headers
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      scriptSrc: ["'self'"],
+      imgSrc: ["'self'", "data:", "https://res.cloudinary.com"],
+    },
+  },
+  hsts: {
+    maxAge: 31536000,
+    includeSubDomains: true,
+    preload: true
+  }
+}));
+
+// 2. CORS with specific origins
+const allowedOrigins = [
+  'https://kazi-linda-app.vercel.app',
+  'http://localhost:3000',
+  process.env.FRONTEND_URL
+].filter(Boolean);
+
+app.use(cors({
+  origin: function(origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+}));
+
+// 3. Rate Limiting - CRITICAL for brute force protection
+const globalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // 100 requests per window
+  message: { message: 'Too many requests, please try again later.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // 5 login attempts
+  message: { message: 'Too many login attempts. Try again in 15 minutes.' },
+  skipSuccessfulRequests: true, // Don't count successful logins
+});
+
+const apiLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 60, // 60 requests per minute
+  message: { message: 'Too many requests, slow down.' }
+});
+
+// Apply rate limiting
+app.use('/api/', globalLimiter);
+app.use('/api/auth/login', authLimiter);
+app.use('/api/auth/register', authLimiter);
+app.use('/api/jobs', apiLimiter);
+app.use('/api/social', apiLimiter);
+
+// 4. Data sanitization against NoSQL injection
+app.use(mongoSanitize());
+
+// 5. XSS protection
+app.use(xss());
+
+// 6. Compression
+app.use(compression());
+
+// 7. Logging (only in development)
+if (process.env.NODE_ENV === 'development') {
+  app.use(morgan('dev'));
+}
+
+// 8. Body parsing with limits
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// 9. Prevent parameter pollution
+app.use((req, res, next) => {
+  if (req.query && Object.keys(req.query).length > 20) {
+    return res.status(400).json({ message: 'Too many query parameters' });
+  }
+  next();
+});
+
+// MongoDB connection with security options
+mongoose.connect(process.env.MONGO_URI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+  serverSelectionTimeoutMS: 5000,
+})
   .then(() => console.log('âœ… MongoDB connected'))
   .catch(err => console.error('âŒ MongoDB error:', err));
 
@@ -48,7 +142,7 @@ io.on('connection', (socket) => {
   });
   
   socket.on('disconnect', () => {
-    console.log('í´Œ Client disconnected:', socket.id);
+    console.log('í³´ Client disconnected:', socket.id);
   });
 });
 
@@ -62,6 +156,44 @@ app.use('/api/emergency', emergencyRoutes);
 // Test route
 app.get('/', (req, res) => res.send('KAZI LINDA API is running'));
 
+// Health check route
+app.get('/health', (req, res) => {
+  res.status(200).json({ 
+    status: 'OK', 
+    timestamp: new Date(),
+    uptime: process.uptime()
+  });
+});
+
+// 404 handler for undefined routes
+app.use('*', (req, res) => {
+  res.status(404).json({ message: `Cannot ${req.method} ${req.originalUrl}` });
+});
+
+// Global error handler
+app.use((err, req, res, next) => {
+  console.error('Error:', err.stack);
+  
+  // Mongoose validation error
+  if (err.name === 'ValidationError') {
+    return res.status(400).json({ message: err.message });
+  }
+  
+  // JWT error
+  if (err.name === 'JsonWebTokenError') {
+    return res.status(401).json({ message: 'Invalid token' });
+  }
+  
+  // Rate limit error
+  if (err.statusCode === 429) {
+    return res.status(429).json({ message: 'Too many requests' });
+  }
+  
+  res.status(err.statusCode || 500).json({ 
+    message: process.env.NODE_ENV === 'production' ? 'Internal server error' : err.message 
+  });
+});
+
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => console.log(`íº€ Server running on port ${PORT}`));
 
@@ -69,14 +201,39 @@ server.listen(PORT, () => console.log(`íº€ Server running on port ${PORT}`));
 const messageRoutes = require('./routes/messageRoutes');
 app.use('/api/messages', messageRoutes);
 
-// Add after other route imports
+// Profile routes
 const profileRoutes = require('./routes/profileRoutes');
 app.use('/api/profile', profileRoutes);
+
+// Social routes
 const socialRoutes = require('./routes/socialRoutes');
 app.use('/api/social', socialRoutes);
+
+// Online status middleware
 const { trackOnlineStatus } = require('./middleware/onlineStatus');
 app.use(trackOnlineStatus);
+
+// Admin routes
 const adminRoutes = require('./routes/adminRoutes');
 app.use('/api/admin', adminRoutes);
+
+// Story routes
 const storyRoutes = require('./routes/storyRoutes');
 app.use('/api/stories', storyRoutes);
+
+// Role-based authorization middleware for routes
+const authorize = (roles) => {
+  return (req, res, next) => {
+    if (!req.user) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+    if (!roles.includes(req.user.role)) {
+      return res.status(403).json({ message: 'Forbidden: Insufficient permissions' });
+    }
+    next();
+  };
+};
+
+// Make authorize available globally
+app.set('authorize', authorize);
+
