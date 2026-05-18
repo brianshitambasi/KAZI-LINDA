@@ -51,21 +51,29 @@ const getJobById = async (req, res) => {
 // Create job (employers and admin only)
 const createJob = async (req, res) => {
   try {
-    if (req.user.role !== 'employer' && req.user.role !== 'admin') {
-      return res.status(403).json({ message: 'Only employers can post jobs' });
-    }
+    console.log("Ì≥ù Create job request received");
+    console.log("User:", req.user?.id, "Role:", req.user?.role);
+    console.log("Job data:", req.body);
     
+    if (req.user.role !== "employer" && req.user.role !== "admin") {
+      console.log("‚ùå Access denied - not employer");
+      return res.status(403).json({ message: "Only employers can post jobs" });
+    }
+
     const jobData = {
       ...req.body,
       employerId: req.user.id,
-      isVerified: req.user.role === 'admin'
+      isVerified: req.user.role === "admin"
     };
-    
+
     const job = await Job.create(jobData);
-    await job.populate('employerId', 'name email companyName');
+    await job.populate("employerId", "name email");
+    
+    console.log("‚úÖ Job created:", job._id);
     res.status(201).json(job);
   } catch (err) {
-    console.error('Create job error:', err);
+    console.error("‚ùå Create job error:", err.message);
+    console.error("Stack:", err.stack);
     res.status(500).json({ message: err.message });
   }
 };
