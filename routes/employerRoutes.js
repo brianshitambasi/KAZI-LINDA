@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { protect } = require('../middleware/auth');
+const { protect, employerOnly } = require('../middleware/auth');
 const Employer = require('../models/Employer');
 
 // ============= HELPER FUNCTIONS =============
@@ -282,23 +282,3 @@ router.get('/applications', protect, employerOnly, async (req, res) => {
 });
 
 // Get applications for employer's jobs
-router.get('/applications', protect, employerOnly, async (req, res) => {
-  try {
-    const Application = require('../models/Application');
-    const Job = require('../models/Job');
-    
-    // Get all jobs posted by this employer
-    const jobs = await Job.find({ employerId: req.user.id });
-    const jobIds = jobs.map(job => job._id);
-    
-    // Get applications for those jobs
-    const applications = await Application.find({ jobId: { $in: jobIds } })
-      .populate('workerId', 'name email phone profilePicture skills experience')
-      .populate('jobId', 'title country salary')
-      .sort({ appliedAt: -1 });
-    
-    res.json(applications);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-});
