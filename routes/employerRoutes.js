@@ -228,31 +228,20 @@ router.get('/:id', getEmployer);
 router.post('/rate/:id', rateEmployer);
 router.post('/report/:id', reportEmployer);
 
-module.exports = router;
-
 // Update application status (accept/reject)
 router.put('/applications/:id/status', protect, employerOnly, async (req, res) => {
   try {
     const { status, notes } = req.body;
     const Application = require('../models/Application');
     const Job = require('../models/Job');
-    
     const application = await Application.findById(req.params.id).populate('jobId');
-    if (!application) {
-      return res.status(404).json({ message: 'Application not found' });
-    }
-    
-    // Verify employer owns this job
+    if (!application) return res.status(404).json({ message: 'Application not found' });
     const job = await Job.findById(application.jobId);
-    if (job.employerId.toString() !== req.user.id && req.user.role !== 'admin') {
-      return res.status(403).json({ message: 'Not authorized' });
-    }
-    
+    if (job.employerId.toString() !== req.user.id && req.user.role !== 'admin') return res.status(403).json({ message: 'Not authorized' });
     application.status = status;
     application.employerNotes = notes;
     application.reviewedAt = new Date();
     await application.save();
-    
     res.json({ success: true, application });
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -260,6 +249,25 @@ router.put('/applications/:id/status', protect, employerOnly, async (req, res) =
 });
 
 // Get applications for employer's jobs
+router.get('/applications', protect, employerOnly, async (req, res) => {
+  try {
+    const Application = require('../models/Application');
+    const Job = require('../models/Job');
+    const jobs = await Job.find({ employerId: req.user.id });
+    const jobIds = jobs.map(job => job._id);
+    const applications = await Application.find({ jobId: { $in: jobIds } })
+      .populate('workerId', 'name email phone profilePicture skills experience')
+      .populate('jobId', 'title country salary')
+      .sort({ appliedAt: -1 });
+    res.json(applications);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+
+module.exports = router;
+
 router.get('/applications', protect, employerOnly, async (req, res) => {
   try {
     const Application = require('../models/Application');
