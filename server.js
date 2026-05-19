@@ -21,6 +21,7 @@ const profileRoutes = require('./routes/profileRoutes');
 const socialRoutes = require('./routes/socialRoutes');
 const messageRoutes = require('./routes/messageRoutes');
 const storyRoutes = require('./routes/storyRoutes');
+const notificationRoutes = require("./routes/notificationRoutes");
 const adminRoutes = require('./routes/adminRoutes');
 
 const app = express();
@@ -146,6 +147,7 @@ app.use('/api/profile', profileRoutes);
 app.use('/api/social', socialRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api/stories', storyRoutes);
+app.use("/api/notifications", notificationRoutes);
 app.use('/api/admin', adminRoutes);
 
 // Test routes

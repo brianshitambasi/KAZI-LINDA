@@ -1,15 +1,21 @@
 const mongoose = require('mongoose');
 
 const notificationSchema = new mongoose.Schema({
-  user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-  type: { type: String, enum: ['like', 'comment', 'follow', 'message', 'job_application', 'emergency'], required: true },
-  from: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-  postId: { type: mongoose.Schema.Types.ObjectId, ref: 'Post' },
-  message: { type: String },
-  read: { type: Boolean, default: false },
-  createdAt: { type: Date, default: Date.now }
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, index: true },
+  type: { 
+    type: String, 
+    enum: ['follow', 'follow_accept', 'job_application', 'application_status', 'message', 'job_alert', 'system'],
+    required: true 
+  },
+  title: { type: String, required: true },
+  message: { type: String, required: true },
+  data: { type: mongoose.Schema.Types.Mixed }, // Store additional data like userId, jobId, etc.
+  isRead: { type: Boolean, default: false },
+  createdAt: { type: Date, default: Date.now, index: true }
 });
 
-notificationSchema.index({ user: 1, createdAt: -1 });
+// Index for fast queries
+notificationSchema.index({ userId: 1, createdAt: -1 });
+notificationSchema.index({ userId: 1, isRead: 1 });
 
 module.exports = mongoose.model('Notification', notificationSchema);
