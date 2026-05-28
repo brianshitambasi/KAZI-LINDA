@@ -158,12 +158,13 @@ const followUser = async (req, res) => {
       status: 'pending'
     });
     
+    const Notification = require("../models/Notification");
     await Notification.create({
-      user: followingId,
-      type: 'follow',
-      from: req.user.id,
+      userId: followingId,
+      type: "follow",
+      title: "New Follow Request",
       message: `${req.user.name} wants to follow you`,
-      read: false
+      isRead: false
     });
     
     res.status(201).json({ message: 'Follow request sent', success: true, connection });
