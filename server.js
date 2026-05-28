@@ -72,7 +72,7 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }));
 
-const globalLimiter = rateLimit({
+// const globalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 100,
   message: { message: 'Too many requests, please try again later.' },
@@ -87,7 +87,7 @@ const authLimiter = rateLimit({
   skipSuccessfulRequests: true,
 });
 
-const apiLimiter = rateLimit({
+// const apiLimiter = rateLimit({
   windowMs: 60 * 1000,
   max: 60,
   message: { message: 'Too many requests, slow down.' }
