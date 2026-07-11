@@ -4,7 +4,7 @@ const Application = require('../models/Application');
 // Get all jobs (public - anyone can view)
 const getAllJobs = async (req, res) => {
   try {
-    const { page = 1, limit = 20, search, country } = req.query;
+    const { page = 1, limit = 20, search, country, category } = req.query;
     const query = { isActive: true };
     
     if (search) {
@@ -14,6 +14,7 @@ const getAllJobs = async (req, res) => {
       ];
     }
     if (country) query.country = country;
+    if (category) query.category = category;
     
     const jobs = await Job.find(query)
       .populate('employerId', 'name email companyName')

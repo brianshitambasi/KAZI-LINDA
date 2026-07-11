@@ -65,7 +65,35 @@ const getAllApplications = async (req, res) => {
 };
 
 module.exports = {
+  quickApply,
   createApplication,
   getMyApplications,
   getAllApplications
+};
+
+// Quick apply - uses worker's saved profile
+const quickApply = async (req, res) => {
+  try {
+    const { jobId } = req.params;
+    const workerId = req.user.id;
+    
+    const existing = await Application.findOne({ jobId, workerId });
+    if (existing) {
+      return res.status(400).json({ message: 'Already applied' });
+    }
+    
+    const worker = await User.findById(workerId);
+    
+    const application = await Application.create({
+      jobId,
+      workerId,
+      status: 'pending',
+      coverLetter: worker.bio || 'I am interested in this position.',
+      experience: worker.experience || ''
+    });
+    
+    res.status(201).json(application);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
 };

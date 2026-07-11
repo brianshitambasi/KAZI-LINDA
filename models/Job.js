@@ -16,6 +16,7 @@ const jobSchema = new mongoose.Schema({
   daysOff: { type: String, default: '1 day/week' },
   contractDuration: { type: Number, required: true },
   benefits: [{ type: String }],
+  category: { type: String, enum: ["construction","domestic","driving","nursing","hospitality","education","security","agriculture","engineering","technology","other"], default: "other" },
   requirements: [{ type: String }],
   isVerified: { type: Boolean, default: false },
   isActive: { type: Boolean, default: true },
@@ -24,3 +25,9 @@ const jobSchema = new mongoose.Schema({
 
 jobSchema.index({ title: 'text', description: 'text', country: 'text' });
 module.exports = mongoose.model('Job', jobSchema);
+
+  category: { 
+    type: String, 
+    enum: ['construction', 'domestic', 'driving', 'nursing', 'hospitality', 'education', 'security', 'agriculture', 'engineering', 'technology', 'other'],
+    default: 'other'
+  },

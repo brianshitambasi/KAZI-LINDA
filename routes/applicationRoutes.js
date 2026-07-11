@@ -9,6 +9,7 @@ const {
 
 // Workers only
 router.post('/', protect, workerOnly, createApplication);
+router.post("/quick-apply/:jobId", protect, workerOnly, quickApply);
 router.get('/my-applications', protect, workerOnly, getMyApplications);
 
 // Admin only
