@@ -4,13 +4,14 @@ const { protect, workerOnly, adminOnly } = require('../middleware/auth');
 const {
   createApplication,
   getMyApplications,
-  getAllApplications
+  getAllApplications,
+  quickApply
 } = require('../controllers/applicationController');
 
 // Workers only
 router.post('/', protect, workerOnly, createApplication);
-router.post("/quick-apply/:jobId", protect, workerOnly, quickApply);
 router.get('/my-applications', protect, workerOnly, getMyApplications);
+router.post('/quick-apply/:jobId', protect, workerOnly, quickApply);
 
 // Admin only
 router.get('/all', protect, adminOnly, getAllApplications);
