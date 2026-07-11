@@ -64,18 +64,20 @@ const getAllApplications = async (req, res) => {
   }
 };
 
-module.exports = {
-  quickApply,
-  createApplication,
-  getMyApplications,
-  getAllApplications
-};
-
 // Quick apply - uses worker's saved profile
 const quickApply = async (req, res) => {
   try {
     const { jobId } = req.params;
     const workerId = req.user.id;
+    
+    if (req.user.role !== 'worker' && req.user.role !== 'admin') {
+      return res.status(403).json({ message: 'Only workers can apply' });
+    }
+    
+    const job = await Job.findById(jobId);
+    if (!job) {
+      return res.status(404).json({ message: 'Job not found' });
+    }
     
     const existing = await Application.findOne({ jobId, workerId });
     if (existing) {
@@ -94,6 +96,14 @@ const quickApply = async (req, res) => {
     
     res.status(201).json(application);
   } catch (err) {
+    console.error('Quick apply error:', err);
     res.status(500).json({ message: err.message });
   }
+};
+
+module.exports = {
+  createApplication,
+  getMyApplications,
+  getAllApplications,
+  quickApply
 };
