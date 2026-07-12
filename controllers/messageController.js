@@ -1,8 +1,9 @@
 const Message = require('../models/Message');
 const Conversation = require('../models/Conversation');
 const User = require('../models/User');
+const Notification = require('../models/Notification');
 
-// Send a message
+// Send a message with notification
 const sendMessage = async (req, res) => {
   try {
     const { receiverId, jobId, subject, message, attachments } = req.body;
@@ -12,6 +13,7 @@ const sendMessage = async (req, res) => {
       return res.status(404).json({ message: 'Receiver not found' });
     }
     
+    // Create the message
     const newMessage = await Message.create({
       senderId: req.user.id,
       receiverId,
@@ -24,6 +26,7 @@ const sendMessage = async (req, res) => {
     await newMessage.populate('senderId', 'name email profilePicture role currentStatus');
     await newMessage.populate('receiverId', 'name email profilePicture role');
     
+    // Update or create conversation
     let conversation = await Conversation.findOne({
       participants: { $all: [req.user.id, receiverId] }
     });
@@ -46,7 +49,25 @@ const sendMessage = async (req, res) => {
       await conversation.populate('participants', 'name email profilePicture role currentStatus');
     }
     
-    res.status(201).json({ success: true, message: newMessage, conversation });
+    // Create notification for receiver
+    await Notification.create({
+      userId: receiverId,
+      type: 'message',
+      title: `New message from ${req.user.name}`,
+      message: message.substring(0, 100),
+      data: {
+        senderId: req.user.id,
+        senderName: req.user.name,
+        conversationId: conversation._id,
+        messageId: newMessage._id
+      }
+    });
+    
+    res.status(201).json({ 
+      success: true, 
+      message: newMessage, 
+      conversation 
+    });
   } catch (err) {
     console.error('Send message error:', err);
     res.status(500).json({ message: err.message });
@@ -67,9 +88,7 @@ const getConversations = async (req, res) => {
     
     console.log('Found conversations:', conversations.length);
     
-    // Format conversations safely
     const formattedConversations = conversations.map(conv => {
-      // Find the other participant safely
       const otherParticipant = conv.participants ? conv.participants.find(p => p && p._id && p._id.toString() !== req.user.id) : null;
       
       if (!otherParticipant) {

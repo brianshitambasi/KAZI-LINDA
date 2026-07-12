@@ -72,17 +72,23 @@ const deleteNotification = async (req, res) => {
 // Create notification helper
 const createNotification = async (userId, type, title, message, data = {}) => {
   try {
+    if (!userId || !title || !message) {
+      console.error('Missing required notification fields:', { userId, title, message });
+      return null;
+    }
+    
     const notification = new Notification({
       userId,
-      type,
+      type: type || 'system',
       title,
       message,
       data
     });
     await notification.save();
+    console.log(`Notification created for user ${userId}: ${title}`);
     return notification;
   } catch (err) {
-    console.error('Error creating notification:', err);
+    console.error('Error creating notification:', err.message);
     return null;
   }
 };
